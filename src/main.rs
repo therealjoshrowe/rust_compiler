@@ -1,4 +1,3 @@
-use std::char;
 use std::io::Read;
 use std::error::Error;
 use std::io;
@@ -18,93 +17,182 @@ const LEFT_MOUST: i32 = 111;
 const RIGHT_MOUST: i32 = 112;
 const PERIOD: i32 = 113;
 const NOT_EQUALS_OP: i32 = 114;
-const DOUBLE_COLON_OP: i32 = 115;
+const PATH_OP: i32 = 115;
 const COMMA: i32 = 116;
 const SEMICOLON: i32 = 117;
 const LEFT_BRACE: i32 = 118;
 const RIGHT_BRACE: i32 = 119;
 const STRING_LIT: i32 = 120;
 const INT_LIT: i32 = 121;
+const STAR_OP: i32 = 122;
+const MATCH_ARROW: i32 = 123;
+const COLON: i32 = 124;
+const NO_RETURN: i32 = 125;
+const IDENT: i32 = 126;
+const KEYWORD: i32 = 127;
 
 fn main() {
+    let mut next_char;
+    let mut token = 0;
     let mut lexeme = String::new();
 
-    let mut f = match File::open("foo.txt") {
+    let f = match File::open("foo.txt") {
         Ok(file) => file,
         Err(why) => panic!("could not read {}", Error::description(&why)),
     };
 
-    let mut c = read_char(&f);
+    next_char = read_char(&f);
+    while next_char   != 0 as char {
 
-    while c != 0 {
 
-        let mut ch = c as char;
-
-        while ch.is_whitespace() {
-            c = read_char(&f);
-            ch = c as char;
+        while next_char.is_whitespace() {
+            next_char = read_char(&f);
         }
        
-        if ch.is_alphabetic() {
-            while (ch.is_alphabetic()) {
-                lexeme.push(ch);
-                c = read_char(&f);
-                ch = c as char;
+        if next_char.is_alphabetic() {
+            while next_char.is_alphabetic() {
+                lexeme.push(next_char);
+                next_char = read_char(&f);
             }
+            token = IDENT; // only handle identifiers currently
         }
-       else  if ch.is_numeric() {
-            while ch.is_numeric() {
-                lexeme.push(ch);
-                c = read_char(&f);
-                ch = c as char;
+       else  if next_char.is_numeric() {
+            while next_char.is_numeric() {
+                lexeme.push(next_char);
+                next_char = read_char(&f);
             }
+            token = INT_LIT; //only handle integers currently
         }
         else  {
-            let token = lookup(ch, &f);
-            lexeme.push(ch);
+            let (tok, lex) = lookup(&mut next_char, &f);
+            lexeme.push_str(&lex);
+            token = tok;
+            next_char = read_char(&f);
         }
 
 
-        println!("{}", lexeme);
+        println!("({}, {})", token, lexeme);
         lexeme = String::new();
-        c = read_char(&f);
     }
 
 }
-fn read_char(mut f: &File) -> u8 {
+fn read_char(mut f: &File) -> char {
    let mut buffer: [u8; 1]  = [0];
-   let c = match f.read(&mut buffer) {
+   let _ = match f.read(&mut buffer) {
        Ok(ch) => ch,
        Err(why) => panic!("Could not read {}", Error::description(&why)),
-   }; 
-   buffer[0] 
+   };
+   buffer[0] as char
 }
-fn lookup(ch: char, mut f: &File) -> (i32, String) {
+
+fn lookup(next_char: &mut char, f: &File) -> (i32, String) {
     let mut token = 0;
     let mut lexeme = String::new();
+    let ch = *next_char;
+
     if ch == '(' {
         token = LEFT_PAREN;
-        lexeme.push(ch);
-   }
+        lexeme.push('(');
+    }
     else if ch == ')' {
-        token = RIGHT_PAREN;
-        lexeme.push(ch);
+        token - RIGHT_PAREN;
+        lexeme.push(')');
     }
     else if ch == '+' {
         token = PLUS_OP;
-        lexeme.push(ch);
+        lexeme.push('+');
     }
     else if ch == '-' {
-        token = MINUS_OP;
-        lexeme.push(ch);
+        lexeme.push('-');
+        *next_char = read_char(&f);
+        if *next_char == '>' {
+            token = ARROW_OP;
+            lexeme.push('>');
+        }
+        else {
+            token = MINUS_OP;
+        }
+    } 
+    else if ch == '*' {
+        token = STAR_OP;
+        lexeme.push('*');
     }
     else if ch == '/' {
         token = DIV_OP;
+        lexeme.push('/');
+    }
+    else if ch == '=' {
+        lexeme.push(ch);
+        *next_char = read_char(&f);
+        if *next_char == '=' {
+            token = EQUALS_OP;
+            lexeme.push(*next_char);
+        }
+        else if *next_char == '>' {
+            token = MATCH_ARROW;
+            lexeme.push(*next_char);
+        }
+        else {
+            token = ASSIGN_OP;
+        }
+    }
+    else if ch == '&' {
+        lexeme.push(ch);
+        token = AMBER_OP;
+    }
+    else if ch == '{' {
+        token = LEFT_MOUST;
         lexeme.push(ch);
     }
-    else if ch == '*' {
-        token = MULT_OP;
+    else if ch == '}' {
+        token = RIGHT_MOUST;
         lexeme.push(ch);
+    }
+    else if ch == '.' {
+        token = PERIOD;
+        lexeme.push(ch);
+    }
+    else if ch == '!' {
+        lexeme.push(ch);
+        *next_char = read_char(&f);
+        if *next_char == '=' {
+            token = NOT_EQUALS_OP;
+            lexeme.push(*next_char);
+        }
+        else {
+            token = NO_RETURN;
+        }
+    }
+    else if ch == ':' {
+        lexeme.push(ch);
+        *next_char = read_char(&f);
+        if *next_char == ':' {
+            token = PATH_OP;
+            lexeme.push(*next_char);
+        }
+        else {
+            lex_error();
+        }
+    }
+    else if ch == '[' {
+        lexeme.push(ch);
+        token = LEFT_BRACE;
+    }
+    else if ch == ']' {
+        lexeme.push(ch);
+        token = RIGHT_BRACE;
+    }
+    else if ch == '"' {
+        lexeme.push(ch);
+        *next_char = read_char(&f);
+        while *next_char != '"' {
+            lexeme.push(*next_char);
+            *next_char = read_char(&f);
+        }
+        token = STRING_LIT; // does not handle escape sequences or malformed strings
     }
     (token, lexeme)
+}
+fn lex_error() -> ! {
+    panic!("There was a lexical error");
 }
