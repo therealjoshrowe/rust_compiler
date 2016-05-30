@@ -8,7 +8,6 @@ const LEFT_PAREN: i32 = 101;
 const RIGHT_PAREN: i32 = 102;
 const PLUS_OP: i32 = 103;
 const MINUS_OP: i32 = 104;
-const MULT_OP: i32 = 105;
 const DIV_OP: i32 = 106;
 const ASSIGN_OP: i32 = 107;
 const EQUALS_OP: i32 = 108;
@@ -34,6 +33,10 @@ const KEYWORD: i32 = 127;
 const CHAR_LIT: i32 = 128;
 const LINE_COMMENT: i32 = 129;
 const LINE_CONTINUATION: i32 = 130;
+const HASH: i32 = 131;
+const LEFT_ANGLE: i32 = 132;
+const RIGHT_ANGLE: i32 = 133;
+const UNDERSCORE: i32 = 134;
 
 fn main() {
     let mut next_char;
@@ -48,8 +51,9 @@ fn main() {
     };
 
     next_char = read_char(&f);
-    //need to add support to handle comments!!!!!
+    //need to add support to handle block comments
     while next_char   != 0 as char {
+
         
         while next_char.is_whitespace() {
             next_char = read_char(&f);
@@ -71,6 +75,20 @@ fn main() {
                 next_char = read_char(&f);
             }
             token = INT_LIT; //only handle integers currently
+        }        
+        else if next_char == '/' {
+            lexeme.push(next_char);
+            next_char = read_char(&f);
+            if next_char == '/' {
+                lexeme.push(next_char);
+                while next_char != '\n' {
+                    if next_char != '\n' {
+                        lexeme.push(next_char);
+                        next_char = read_char(&f);
+                    }
+                }
+                token = LINE_COMMENT;
+            }
         }
         else  {
             let (tok, lex) = lookup(&mut next_char, &f);
@@ -254,6 +272,26 @@ fn lookup(next_char: &mut char, f: &File) -> (i32, String) {
         else {
             token = LINE_CONTINUATION;
         }
+    }
+    else if ch == '#' {
+        lexeme.push(ch);
+        token = HASH;
+    }
+    else if ch == ',' {
+        lexeme.push(ch);
+        token = COMMA;
+    }
+    else if ch == '<' {
+        lexeme.push(ch);
+        token = LEFT_ANGLE;
+    }
+    else if ch == '>' {
+        lexeme.push(ch);
+        token = RIGHT_ANGLE;
+    }
+    else if ch == '_' {
+        lexeme.push(ch);
+        token = UNDERSCORE;
     }
     (token, lexeme)
 }
