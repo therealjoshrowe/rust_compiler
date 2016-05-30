@@ -1,3 +1,4 @@
+use std::env;
 use std::io::Read;
 use std::error::Error;
 use std::io;
@@ -30,27 +31,35 @@ const COLON: i32 = 124;
 const NO_RETURN: i32 = 125;
 const IDENT: i32 = 126;
 const KEYWORD: i32 = 127;
+const CHAR_LIT: i32 = 128;
+const LINE_COMMENT: i32 = 129;
+const LINE_CONTINUATION: i32 = 130;
 
 fn main() {
     let mut next_char;
     let mut token = 0;
     let mut lexeme = String::new();
+    //need to do bounds checking on args vec!
 
-    let f = match File::open("foo.txt") {
+    let args: Vec<_> = env::args().collect();
+    let f = match File::open(&args[1]) {
         Ok(file) => file,
         Err(why) => panic!("could not read {}", Error::description(&why)),
     };
 
     next_char = read_char(&f);
+    //need to add support to handle comments!!!!!
     while next_char   != 0 as char {
-
-
+        
         while next_char.is_whitespace() {
             next_char = read_char(&f);
         }
        
         if next_char.is_alphabetic() {
-            while next_char.is_alphabetic() {
+            lexeme.push(next_char);
+            next_char = read_char(&f);
+            while next_char.is_alphabetic() || next_char == '_' || next_char.is_numeric() ||
+                  next_char == '!' {
                 lexeme.push(next_char);
                 next_char = read_char(&f);
             }
@@ -171,7 +180,7 @@ fn lookup(next_char: &mut char, f: &File) -> (i32, String) {
             lexeme.push(*next_char);
         }
         else {
-            lex_error();
+            token = COLON;
         }
     }
     else if ch == '[' {
@@ -182,6 +191,40 @@ fn lookup(next_char: &mut char, f: &File) -> (i32, String) {
         lexeme.push(ch);
         token = RIGHT_BRACE;
     }
+    else if ch == '\'' {
+        lexeme.push(ch);
+        *next_char = read_char(&f);
+        if *next_char == '\\' {
+            lexeme.push(*next_char);
+            *next_char = read_char(&f);
+            if *next_char == 'n' || *next_char == 'r' || *next_char == 't' || *next_char == '\\' ||
+               *next_char == '0' || *next_char == '\'' || *next_char == '\"' {
+                   lexeme.push(*next_char);
+                   *next_char = read_char(&f);
+                   if *next_char == '\'' {
+                       lexeme.push(*next_char);
+                       token = CHAR_LIT;
+                   }
+                   else {
+                       lex_error();
+                   }
+            }
+            else {
+                lex_error();
+            }
+        }
+        else {
+            lexeme.push(*next_char);
+            *next_char = read_char(&f);
+            if *next_char == '\'' {
+                lexeme.push(*next_char);
+                token = CHAR_LIT;
+            }
+            else {
+                lex_error();
+            }
+        }
+    }
     else if ch == '"' {
         lexeme.push(ch);
         *next_char = read_char(&f);
@@ -189,7 +232,28 @@ fn lookup(next_char: &mut char, f: &File) -> (i32, String) {
             lexeme.push(*next_char);
             *next_char = read_char(&f);
         }
+        lexeme.push(*next_char);
         token = STRING_LIT; // does not handle escape sequences or malformed strings
+    }
+    else if ch == ';' {
+        lexeme.push(ch);
+        token = SEMICOLON;
+
+    }
+    else if ch == '/' {
+        lexeme.push(ch);
+        *next_char = read_char(&f);
+        if *next_char == '/' {
+            lexeme.push(*next_char);
+            while *next_char != '\n' {
+                *next_char = read_char(&f);
+                lexeme.push(*next_char);
+            }
+            token = LINE_COMMENT;
+        }
+        else {
+            token = LINE_CONTINUATION;
+        }
     }
     (token, lexeme)
 }
