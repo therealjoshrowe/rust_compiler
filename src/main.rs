@@ -3,7 +3,7 @@ use std::env;
 use std::io::Read;
 use std::error::Error;
 use std::fs::File;
-
+/*This is a comment to test lexing block comments */
 const LEFT_PAREN: i32 = 101;
 const RIGHT_PAREN: i32 = 102;
 const PLUS_OP: i32 = 103;
@@ -37,6 +37,7 @@ const HASH: i32 = 131;
 const LEFT_ANGLE: i32 = 132;
 const RIGHT_ANGLE: i32 = 133;
 const UNDERSCORE: i32 = 134;
+const FLOAT_LIT: i32 = 135;
 
 fn main() {
     let mut next_char;
@@ -53,7 +54,6 @@ fn main() {
     };
 
     next_char = read_char(&f);
-    //need to add support to handle block comments
     while next_char   != 0 as char {
 
         
@@ -81,7 +81,35 @@ fn main() {
                 lexeme.push(next_char);
                 next_char = read_char(&f);
             }
-            token = INT_LIT; //only handle integers currently
+/*            if next_char == '.' { //this shit is busted.. everything below this that reads floating
+                //point does not work.
+                points does not work
+                lexeme.push(next_char);
+                next_char = read_char(&f);
+                if next_char.is_numeric() {
+                    while next_char.is_numeric() {
+                        lexeme.push(next_char);
+                        next_char = read_char(&f);
+                        if next_char == 'E' || next_char == 'e' {
+                            lexeme.push(next_char);
+                            next_char = read_char(&f);
+                            //^^ this deep might be a little confusing: might abstract this to a
+                            // method
+                            if next_char.is_numeric() {
+                                while next_char.is_numeric() {
+                                    lexeme.push(next_char);
+                                    next_char = read_char(&f);
+                                }
+                                token - FLOAT_LIT;
+                            } 
+                            else {
+                                lex_error();
+                            }
+                        }
+                    }
+                }
+            }*/
+            token = INT_LIT;
         }        
         else if next_char == '/' {
             lexeme.push(next_char);
@@ -107,6 +135,7 @@ fn main() {
                         next_char = read_char(&f);
                         if next_char == '/' {
                             lexeme.push(next_char);
+                            next_char = read_char(&f);
                             break;
                         }
                     }
