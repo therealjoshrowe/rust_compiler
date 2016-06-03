@@ -96,6 +96,22 @@ fn main() {
                 }
                 token = LINE_COMMENT;
             }
+            else if next_char == '*' {
+                lexeme.push(next_char);
+                next_char = read_char(&f);
+                while next_char != '*' {
+                    lexeme.push(next_char);
+                    next_char = read_char(&f);
+                    if next_char == '*' {
+                        lexeme.push(next_char);
+                        next_char = read_char(&f);
+                        if next_char == '/' {
+                            lexeme.push(next_char);
+                            break;
+                        }
+                    }
+                }
+            }
         }
         else  {
             let (tok, lex) = lookup(&mut next_char, &f);
